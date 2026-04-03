@@ -6,8 +6,11 @@ import {
 	FiCheckCircle,
 	FiClock,
 	FiFileText,
+	FiInfo,
 	FiMapPin,
+	FiPrinter,
 	FiUsers,
+	FiXCircle,
 } from 'react-icons/fi';
 import { bookingApi } from '../../api/bookingApi';
 import { useAuth } from '../../context/AuthContext';
@@ -70,17 +73,8 @@ const BookingDetails = () => {
 		value
 			? new Date(value).toLocaleDateString(undefined, {
 					year: 'numeric',
-					month: '2-digit',
-					day: '2-digit',
-				})
-			: '-';
-
-	const formatDateLong = (value) =>
-		value
-			? new Date(value).toLocaleDateString(undefined, {
-					year: 'numeric',
-					month: '2-digit',
-					day: '2-digit',
+				month: 'short',
+				day: '2-digit',
 				})
 			: '-';
 
@@ -91,6 +85,10 @@ const BookingDetails = () => {
 					minute: '2-digit',
 				})
 			: '-';
+
+	const printPage = () => {
+		window.print();
+	};
 
 	const handleCancel = async () => {
 		if (!booking || booking.status !== 'APPROVED') return;
@@ -109,114 +107,135 @@ const BookingDetails = () => {
 	if (!booking) return <ErrorAlert message="Booking not found" />;
 
 	return (
-		<div className="booking-details-page">
-			<div className="booking-details-header">
-				<div>
-					<Link to="/bookings" className="booking-back-link">
+		<div className="booking-details-page booking-details-v2">
+			<div className="booking-details-top">
+				<div className="booking-details-top-left">
+					<Link to="/bookings" className="booking-back-link" aria-label="Back">
 						<FiArrowLeft />
 					</Link>
-					<h1>Booking Details</h1>
-					<BookingStatusBadge status={booking.status} />
-					<p>
-						ID: BK-{booking.id} {booking.createdAt ? `• Created on ${formatDate(booking.createdAt)}` : ''}
-					</p>
+					<div className="booking-details-title">
+						<div className="booking-title-row">
+							<h1>Booking Details</h1>
+							<BookingStatusBadge status={booking.status} />
+						</div>
+						<p className="booking-reference">
+							Reference: #BK-{booking.id}
+						</p>
+					</div>
 				</div>
 
-				{booking.status === 'APPROVED' && (
-					<button type="button" className="btn-reject" onClick={handleCancel}>
-						Cancel Booking
+				<div className="booking-details-top-actions">
+					<button type="button" className="btn-print" onClick={printPage}>
+						<FiPrinter /> Print
 					</button>
-				)}
+					{booking.status === 'APPROVED' && (
+						<button type="button" className="btn-cancel-booking" onClick={handleCancel}>
+							<FiXCircle /> Cancel Booking
+						</button>
+					)}
+				</div>
 			</div>
 
-			<div className="booking-details-grid">
-				<section className="booking-details-card booking-details-main">
-					<h3>Information</h3>
-					<div className="details-info-grid">
-						<div className="details-item">
-							<p>
-								<FiMapPin /> Resource
-							</p>
-							<strong>{booking.resourceName || '-'}</strong>
-							<span>{room?.type || 'Meeting Room'}</span>
+			<div className="booking-details-grid-v2">
+				<div className="booking-details-left">
+					<section className="booking-details-card booking-general-card">
+						<div className="card-title-row">
+							<h3>
+								<FiInfo /> General Information
+							</h3>
 						</div>
-
-						<div className="details-item">
-							<p>
-								<FiFileText /> Purpose
-							</p>
-							<strong>{booking.purpose || '-'}</strong>
+						<div className="general-info-grid">
+							<div className="general-info-item">
+								<span>Resource</span>
+								<strong>{booking.resourceName || '-'}</strong>
+							</div>
+							<div className="general-info-item">
+								<span>Purpose</span>
+								<strong>{booking.purpose || '-'}</strong>
+							</div>
+							<div className="general-info-item">
+								<span>
+									<FiCalendar /> Date
+								</span>
+								<strong>{formatDate(booking.startTime)}</strong>
+							</div>
+							<div className="general-info-item">
+								<span>
+									<FiClock /> Time Slot
+								</span>
+								<strong>
+									{formatTime(booking.startTime)} - {formatTime(booking.endTime)}
+								</strong>
+							</div>
+							<div className="general-info-item">
+								<span>
+									<FiUsers /> Attendees
+								</span>
+								<strong>{booking.expectedAttendees || '-'} Participants</strong>
+							</div>
 						</div>
+					</section>
+				</div>
 
-						<div className="details-item">
-							<p>
-								<FiCalendar /> Date
-							</p>
-							<strong>{formatDateLong(booking.startTime)}</strong>
+				<div className="booking-details-right">
+					<aside className="booking-details-card booking-resource-card">
+						<h3>Resource Details</h3>
+						<div className="room-preview" aria-hidden="true">
+							<span>ROOM VIEW</span>
 						</div>
-
-						<div className="details-item">
-							<p>
-								<FiUsers /> Expected Attendees
-							</p>
-							<strong>{booking.expectedAttendees || '-'} people</strong>
+						<div className="details-kv">
+							<span>Location</span>
+							<strong>{room?.location || 'Main Campus'}</strong>
 						</div>
-
-						<div className="details-item">
-							<p>
-								<FiClock /> Time
-							</p>
-							<strong>
-								{formatTime(booking.startTime)} - {formatTime(booking.endTime)}
-							</strong>
+						<div className="details-kv">
+							<span>Max Capacity</span>
+							<strong>{room?.seats || room?.capacity || '-'}</strong>
 						</div>
-					</div>
-				</section>
+						<div className="details-kv">
+							<span>Status</span>
+							<strong className="status-available">Available</strong>
+						</div>
+					</aside>
 
-				<aside className="booking-details-card booking-details-side">
-					<h3>Resource Details</h3>
-					<div className="details-kv">
-						<span>Location</span>
-						<strong>{room?.location || 'Main Campus'}</strong>
-					</div>
-					<div className="details-kv">
-						<span>Max Capacity</span>
-						<strong>{room?.capacity || '-'}</strong>
-					</div>
-					<div className="details-kv">
-						<span>Current Status</span>
-						<strong className="status-available">Available</strong>
-					</div>
-				</aside>
-
-				<section className="booking-details-card booking-workflow-card">
-					<h3>Workflow Status</h3>
-					<ul className="workflow-list">
-						<li className="done">
-							<FiCheckCircle /> REQUESTED
-						</li>
-						<li className={booking.status === 'PENDING' ? 'active' : 'done'}>
-							<FiCheckCircle /> PENDING REVIEW
-						</li>
-						<li className={booking.status === 'APPROVED' ? 'done' : ''}>
-							<FiCheckCircle /> APPROVED
-						</li>
-					</ul>
-				</section>
-
-				<aside className="booking-details-card booking-decision-card">
-					<h3>Admin Decision</h3>
-					<div className="decision-box">
-						{booking.status === 'APPROVED' && (
-							<p>
-								This booking has been approved. You may use the resource at the scheduled time.
-							</p>
-						)}
-						{booking.status === 'PENDING' && <p>This booking is pending review by an administrator.</p>}
-						{booking.status === 'REJECTED' && <p>This booking was rejected by an administrator.</p>}
-						{booking.status === 'CANCELLED' && <p>This booking has been cancelled.</p>}
-					</div>
-				</aside>
+					<section className="booking-details-card booking-workflow-card">
+						<h3>Workflow Status</h3>
+						<ul className="workflow-timeline">
+							<li className="done">
+								<div className="workflow-dot">
+									<FiCheckCircle />
+								</div>
+								<div>
+									<strong>Requested</strong>
+									<small>{booking.createdAt ? `Submitted ${formatDate(booking.createdAt)}` : ''}</small>
+								</div>
+							</li>
+							<li className={booking.status === 'PENDING' ? 'active' : 'done'}>
+								<div className="workflow-dot">
+									<FiCheckCircle />
+								</div>
+								<div>
+									<strong>Pending Review</strong>
+									<small>{booking.status !== 'PENDING' && booking.updatedAt ? `Completed ${formatDate(booking.updatedAt)}` : ''}</small>
+								</div>
+							</li>
+							<li className={booking.status === 'APPROVED' ? 'done' : booking.status === 'REJECTED' ? 'done rejected' : booking.status === 'CANCELLED' ? 'done cancelled' : ''}>
+								<div className="workflow-dot">
+									<FiCheckCircle />
+								</div>
+								<div>
+									<strong>
+										{booking.status === 'REJECTED'
+											? 'Rejected'
+											: booking.status === 'CANCELLED'
+												? 'Cancelled'
+												: 'Approved'}
+									</strong>
+									<small>{booking.updatedAt ? `Confirmed ${formatDate(booking.updatedAt)}` : ''}</small>
+								</div>
+							</li>
+						</ul>
+					</section>
+				</div>
 			</div>
 		</div>
 	);

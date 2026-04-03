@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FiClipboard, FiClock, FiCheckCircle, FiCheck, FiX, FiEye } from 'react-icons/fi';
+import { FiClipboard, FiClock, FiCheckCircle } from 'react-icons/fi';
 import { bookingApi } from '../../api/bookingApi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
@@ -57,35 +57,6 @@ const Dashboard = () => {
 			minute: '2-digit',
 			hour12: false,
 		});
-
-	const handleApprove = async (id) => {
-		try {
-			await bookingApi.approveBooking(id, 'Approved from admin dashboard');
-			loadDashboardBookings();
-		} catch (err) {
-			setError('Failed to approve booking');
-		}
-	};
-
-	const handleReject = async (id) => {
-		const reason = window.prompt('Enter rejection reason');
-		if (!reason) {
-			return;
-		}
-
-		try {
-			await bookingApi.rejectBooking(id, reason);
-			loadDashboardBookings();
-		} catch (err) {
-			setError('Failed to reject booking');
-		}
-	};
-
-	const handleView = (booking) => {
-		window.alert(
-			`Booking: ${booking.resourceName}\nRequested by: ${booking.userName}\nPurpose: ${booking.purpose}\nStatus: ${booking.status}`
-		);
-	};
 
 	if (loading) {
 		return <LoadingSpinner />;
@@ -157,7 +128,6 @@ const Dashboard = () => {
 							<th>Date & Time</th>
 							<th>Purpose</th>
 							<th>Status</th>
-							<th>Actions</th>
 						</tr>
 					</thead>
 					<tbody>
@@ -179,39 +149,6 @@ const Dashboard = () => {
 								<td>{booking.purpose}</td>
 								<td>
 									<BookingStatusBadge status={booking.status} />
-								</td>
-								<td>
-									<div className="admin-action-buttons">
-										{booking.status === 'PENDING' && (
-											<>
-												<button
-													type="button"
-													className="icon-action-btn approve-icon-btn"
-													onClick={() => handleApprove(booking.id)}
-													aria-label="Approve"
-												>
-													<FiCheck />
-												</button>
-												<button
-													type="button"
-													className="icon-action-btn reject-icon-btn"
-													onClick={() => handleReject(booking.id)}
-													aria-label="Reject"
-												>
-													<FiX />
-												</button>
-											</>
-										)}
-
-										<button
-											type="button"
-											className="icon-action-btn view-icon-btn"
-											onClick={() => handleView(booking)}
-											aria-label="View"
-										>
-											<FiEye />
-										</button>
-									</div>
 								</td>
 							</tr>
 						))}

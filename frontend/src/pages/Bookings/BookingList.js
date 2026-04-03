@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { Link } from 'react-router-dom';
+import { FiCheck, FiX } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 import { bookingApi } from '../../api/bookingApi';
 import BookingStatusBadge from './BookingStatusBadge';
@@ -12,6 +13,9 @@ const BookingList = () => {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+  const [rejectingBookingId, setRejectingBookingId] = useState(null);
+  const [rejectionReason, setRejectionReason] = useState('');
+  const [submitting, setSubmitting] = useState({ bookingId: null, action: null });
   const { isAdmin } = useAuth();
   const adminView = isAdmin();
 
@@ -46,6 +50,46 @@ const BookingList = () => {
       } catch (err) {
         setError('Failed to cancel booking');
       }
+    }
+  };
+
+  const handleAdminApprove = async (booking) => {
+    try {
+      setSubmitting({ bookingId: booking.id, action: 'approve' });
+      setRejectingBookingId(null);
+      setRejectionReason('');
+      await bookingApi.approveBooking(booking.id, '');
+      await loadBookings();
+    } catch (err) {
+      setError('Failed to approve booking');
+    } finally {
+      setSubmitting({ bookingId: null, action: null });
+    }
+  };
+
+  const handleAdminRejectStart = (booking) => {
+    setRejectingBookingId(booking.id);
+    setRejectionReason('');
+    setError(null);
+  };
+
+  const handleAdminRejectSubmit = async (booking) => {
+    const trimmedReason = rejectionReason.trim();
+    if (!trimmedReason) {
+      setError('Please provide a reason for rejection');
+      return;
+    }
+
+    try {
+      setSubmitting({ bookingId: booking.id, action: 'reject' });
+      await bookingApi.rejectBooking(booking.id, trimmedReason);
+      setRejectingBookingId(null);
+      setRejectionReason('');
+      await loadBookings();
+    } catch (err) {
+      setError('Failed to reject booking');
+    } finally {
+      setSubmitting({ bookingId: null, action: null });
     }
   };
 
@@ -138,7 +182,7 @@ const BookingList = () => {
                 <th>Room</th>
                 <th>Date & Time</th>
                 <th>Status</th>
-                {!adminView && <th>Actions</th>}
+                <th>Actions</th>
               </tr>
             </thead>
             <tbody>
@@ -156,8 +200,51 @@ const BookingList = () => {
                   <td>
                     <BookingStatusBadge status={booking.status} />
                   </td>
-                  {!adminView && (
-                    <td>
+                  <td>
+                    {adminView ? (
+                      booking.status === 'PENDING' ? (
+                        <div className="admin-action-cell">
+                          <div className="action-buttons">
+                            <button
+                              type="button"
+                              className="btn-approve-small"
+                              onClick={() => handleAdminApprove(booking)}
+                              disabled={submitting.bookingId === booking.id}
+                            >
+                              <FiCheck /> Accept
+                            </button>
+                            <button
+                              type="button"
+                              className="btn-reject-small"
+                              onClick={() =>
+                                rejectingBookingId === booking.id
+                                  ? handleAdminRejectSubmit(booking)
+                                  : handleAdminRejectStart(booking)
+                              }
+                              disabled={submitting.bookingId === booking.id}
+                            >
+                              <FiX /> {rejectingBookingId === booking.id ? 'Rejecting...' : 'Reject'}
+                            </button>
+                          </div>
+
+                          {rejectingBookingId === booking.id ? (
+                            <input
+                              className="reject-reason-input"
+                              type="text"
+                              value={rejectionReason}
+                              onChange={(e) => setRejectionReason(e.target.value)}
+                              placeholder="Reason for rejection..."
+                              disabled={submitting.bookingId === booking.id}
+                              onKeyDown={(e) => {
+                                if (e.key === 'Enter') {
+                                  handleAdminRejectSubmit(booking);
+                                }
+                              }}
+                            />
+                          ) : null}
+                        </div>
+                      ) : null
+                    ) : (
                       <div className="action-buttons">
                         <Link
                           to={`/bookings/${booking.id}`}
@@ -176,8 +263,8 @@ const BookingList = () => {
                           </button>
                         ) : null}
                       </div>
-                    </td>
-                  )}
+                    )}
+                  </td>
                 </tr>
               ))}
             </tbody>

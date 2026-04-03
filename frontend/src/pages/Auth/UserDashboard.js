@@ -1,11 +1,10 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { FiCheckCircle, FiClipboard, FiClock, FiEye, FiHome, FiPlusSquare } from 'react-icons/fi';
+import { FiCheckCircle, FiClipboard, FiClock, FiEye, FiPlusSquare, FiXCircle } from 'react-icons/fi';
 import { Link } from 'react-router-dom';
 import { bookingApi } from '../../api/bookingApi';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
 import BookingStatusBadge from '../Bookings/BookingStatusBadge';
-import { ROOMS } from '../../utils/constants';
 
 const UserDashboard = () => {
   const [bookings, setBookings] = useState([]);
@@ -32,18 +31,8 @@ const UserDashboard = () => {
   const analytics = useMemo(() => {
     const total = bookings.length;
     const pending = bookings.filter((booking) => booking.status === 'PENDING').length;
-    const approvedToday = bookings.filter((booking) => {
-      if (booking.status !== 'APPROVED') return false;
-      const start = new Date(booking.startTime);
-      const now = new Date();
-      return (
-        start.getFullYear() === now.getFullYear() &&
-        start.getMonth() === now.getMonth() &&
-        start.getDate() === now.getDate()
-      );
-    }).length;
-
-    const availableRooms = ROOMS.length;
+    const approved = bookings.filter((booking) => booking.status === 'APPROVED').length;
+    const rejected = bookings.filter((booking) => booking.status === 'REJECTED').length;
 
     const recentBookings = [...bookings]
       .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime())
@@ -52,8 +41,8 @@ const UserDashboard = () => {
     return {
       total,
       pending,
-      approvedToday,
-      availableRooms,
+      approved,
+      rejected,
       recentBookings,
     };
   }, [bookings]);
@@ -79,17 +68,6 @@ const UserDashboard = () => {
     localStorage.getItem('userName') || localStorage.getItem('userEmail') || 'Campus User';
   const greetingName = (currentUser || 'User').split('@')[0];
 
-  const trendPercent = (value) =>
-    value === 0 ? '0%' : `${Math.min(99, Math.max(1, value))}%`;
-
-  const approvedTrend = bookings.length
-    ? Math.round((analytics.approvedToday / bookings.length) * 100)
-    : 0;
-
-  const pendingTrend = bookings.length
-    ? Math.round((analytics.pending / bookings.length) * 100)
-    : 0;
-
   if (loading) return <LoadingSpinner />;
   if (error) return <ErrorAlert message={error} />;
 
@@ -112,45 +90,40 @@ const UserDashboard = () => {
       </div>
 
       <div className="user-analytics-grid user-dashboard-cards">
-        <article className="user-analytics-card user-summary-card">
-          <div>
+        <article className="user-analytics-card user-kpi-card">
+          <div className="kpi-icon kpi-icon-overall"><FiClipboard /></div>
+          <div className="kpi-body">
+            <div className="kpi-pill kpi-pill-overall">Overall</div>
+            <h3>{analytics.total}</h3>
             <p>Total Bookings</p>
-            <div className="metric-row">
-              <h3>{analytics.total}</h3>
-              <small className="trend-up">↑ {trendPercent(analytics.total)}</small>
-            </div>
           </div>
-          <div className="analytics-icon green"><FiClipboard /></div>
         </article>
 
-        <article className="user-analytics-card user-summary-card">
-          <div>
-            <p>Pending Requests</p>
-            <div className="metric-row">
-              <h3>{analytics.pending}</h3>
-              <small className="trend-down">↓ {trendPercent(pendingTrend)}</small>
-            </div>
+        <article className="user-analytics-card user-kpi-card">
+          <div className="kpi-icon kpi-icon-action"><FiClock /></div>
+          <div className="kpi-body">
+            <div className="kpi-pill kpi-pill-action">Action Needed</div>
+            <h3>{analytics.pending}</h3>
+            <p>Pending Bookings</p>
           </div>
-          <div className="analytics-icon green"><FiClock /></div>
         </article>
 
-        <article className="user-analytics-card user-summary-card">
-          <div>
-            <p>Approved Today</p>
-            <div className="metric-row">
-              <h3>{analytics.approvedToday}</h3>
-              <small className="trend-up">↑ {trendPercent(approvedTrend)}</small>
-            </div>
+        <article className="user-analytics-card user-kpi-card">
+          <div className="kpi-icon kpi-icon-completed"><FiCheckCircle /></div>
+          <div className="kpi-body">
+            <div className="kpi-pill kpi-pill-completed">Completed</div>
+            <h3>{analytics.approved}</h3>
+            <p>Approved Bookings</p>
           </div>
-          <div className="analytics-icon green"><FiCheckCircle /></div>
         </article>
 
-        <article className="user-analytics-card user-summary-card">
-          <div>
-            <p>Available Rooms</p>
-            <h3>{analytics.availableRooms}</h3>
+        <article className="user-analytics-card user-kpi-card">
+          <div className="kpi-icon kpi-icon-declined"><FiXCircle /></div>
+          <div className="kpi-body">
+            <div className="kpi-pill kpi-pill-declined">Declined</div>
+            <h3>{analytics.rejected}</h3>
+            <p>Rejected Bookings</p>
           </div>
-          <div className="analytics-icon green"><FiHome /></div>
         </article>
       </div>
 

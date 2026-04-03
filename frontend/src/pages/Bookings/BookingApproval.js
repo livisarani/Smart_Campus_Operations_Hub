@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
-import { FiCheck, FiClock, FiEye, FiX } from 'react-icons/fi';
+import { useNavigate } from 'react-router-dom';
+import { FiCheck, FiClock, FiMoreHorizontal, FiX } from 'react-icons/fi';
 import { bookingApi } from '../../api/bookingApi';
 import BookingStatusBadge from './BookingStatusBadge';
 import Modal from '../../components/common/Modal';
@@ -7,6 +8,7 @@ import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
 
 const BookingApproval = () => {
+  const navigate = useNavigate();
   const [bookings, setBookings] = useState([]);
   const [loading, setLoading] = useState(true);
   const [selectedBooking, setSelectedBooking] = useState(null);
@@ -59,11 +61,7 @@ const BookingApproval = () => {
   };
 
   const handleDetails = (booking) => {
-    const start = new Date(booking.startTime).toLocaleString();
-    const end = new Date(booking.endTime).toLocaleString();
-    window.alert(
-      `Request #REQ-${2000 + booking.id}\n\nRoom: ${booking.resourceName}\nRequested by: ${booking.userName || 'Campus User'}\nEmail: ${booking.userEmail || '-'}\nTime: ${start} - ${end}\nPurpose: ${booking.purpose || '-'}\nAttendees: ${booking.expectedAttendees || 0}`
-    );
+    navigate(`/bookings/${booking.id}`, { state: { booking } });
   };
 
   const formatDate = (dateString) =>
@@ -98,43 +96,62 @@ const BookingApproval = () => {
         <div className="request-cards-list">
           {bookings.map((booking) => (
             <article key={booking.id} className="request-card">
-              <div className="request-card-main">
-                <div className="request-card-title-row">
-                  <h3>{booking.resourceName}</h3>
-                  <BookingStatusBadge status={booking.status} />
-                  <span className="request-id-tag">#REQ-{2000 + booking.id}</span>
+              <div className="request-user-block">
+                <div className="request-avatar" aria-hidden="true">
+                  {(booking.userName || 'U').slice(0, 1).toUpperCase()}
                 </div>
-
-                <div className="request-card-grid">
-                  <div>
-                    <p className="request-section-label">Requested By</p>
+                <div className="request-user-meta">
+                  <div className="request-user-name-row">
                     <p className="request-user-name">{booking.userName || 'Campus User'}</p>
-                    <small>{booking.userEmail || 'No email provided'}</small>
+                    <span className="request-user-role">{booking.userRole || 'User'}</span>
                   </div>
-
-                  <div>
-                    <p className="request-section-label">Schedule</p>
-                    <p className="request-schedule-line">
-                      <FiClock /> {formatDate(booking.startTime)} - {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
-                    </p>
-                  </div>
-                </div>
-
-                <div className="request-purpose-box">
-                  <p className="request-section-label">Purpose</p>
-                  <div>{booking.purpose || 'No purpose provided'}</div>
+                  <small className="request-user-email">{booking.userEmail || 'No email provided'}</small>
                 </div>
               </div>
 
-              <div className="request-card-actions">
-                <button className="request-approve-btn" onClick={() => handleApprove(booking)}>
-                  <FiCheck /> Approve
+              <div className="request-info-block">
+                <div className="request-info-row">
+                  <div>
+                    <p className="request-section-label">Schedule & Room</p>
+                    <p className="request-info-line">
+                      <FiClock /> {formatDate(booking.startTime)} {formatTime(booking.startTime)} - {formatTime(booking.endTime)}
+                    </p>
+                    <small className="request-room-line">{booking.resourceName}</small>
+                  </div>
+
+                  <div>
+                    <p className="request-section-label">Purpose & Status</p>
+                    <p className="request-purpose-text">{booking.purpose || 'No purpose provided'}</p>
+                    <div className="request-status-row">
+                      <BookingStatusBadge status={booking.status} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <div className="request-actions-block">
+                <button
+                  type="button"
+                  className="btn-approve-small request-action-btn"
+                  onClick={() => handleApprove(booking)}
+                >
+                  <FiCheck /> Accept
                 </button>
-                <button className="request-reject-btn" onClick={() => handleReject(booking)}>
+                <button
+                  type="button"
+                  className="btn-reject-small request-action-btn"
+                  onClick={() => handleReject(booking)}
+                >
                   <FiX /> Reject
                 </button>
-                <button className="request-details-btn" onClick={() => handleDetails(booking)}>
-                  <FiEye /> Details
+                <button
+                  className="request-more-btn"
+                  type="button"
+                  onClick={() => handleDetails(booking)}
+                  aria-label="Details"
+                  title={`Request #REQ-${2000 + booking.id}`}
+                >
+                  <FiMoreHorizontal />
                 </button>
               </div>
             </article>
