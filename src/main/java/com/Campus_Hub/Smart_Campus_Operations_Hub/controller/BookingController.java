@@ -8,6 +8,7 @@ import com.Campus_Hub.Smart_Campus_Operations_Hub.service.BookingService;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.format.annotation.DateTimeFormat;
+import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -130,13 +131,44 @@ public class BookingController {
      * GET /api/bookings/check-conflict?resourceId=1&startTime=2024-01-01T10:00:00&endTime=2024-01-01T12:00:00
      */
     @GetMapping("/check-conflict")
-    public ResponseEntity<Map<String, Boolean>> checkConflict(
+    public ResponseEntity<Map<String, Object>> checkConflict(
             @RequestParam Long resourceId,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startTime,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endTime) {
         boolean hasConflict = bookingService.checkConflict(resourceId, startTime, endTime);
-        Map<String, Boolean> response = new HashMap<>();
+        Map<String, Object> response = new HashMap<>();
         response.put("hasConflict", hasConflict);
+        response.put("message",
+                hasConflict
+                        ? "Selected resource is already booked for the chosen time slot."
+                        : "Resource is available for the selected time slot.");
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Generate a PDF report for booking requests
+     * GET /api/bookings/report?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&status=PENDING
+     */
+    @GetMapping(value = "/report", produces = "application/pdf")
+    public ResponseEntity<byte[]> generateReport(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
+            @RequestParam(required = false) String status,
+            @RequestHeader(value = "X-User-Email", defaultValue = "admin@campus.com") String adminEmail) {
+        BookingStatus reportStatus = null;
+        if (status != null && !status.isBlank()) {
+            reportStatus = BookingStatus.valueOf(status.trim().toUpperCase());
+        }
+
+        byte[] reportBytes = bookingService.generateBookingsReport(adminEmail, startDate, endDate, reportStatus);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.add(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=booking-requests-report.pdf");
+        headers.add(HttpHeaders.CACHE_CONTROL, "no-store, no-cache, must-revalidate, max-age=0");
+
+        return ResponseEntity.ok()
+                .headers(headers)
+                .contentType(org.springframework.http.MediaType.APPLICATION_PDF)
+                .body(reportBytes);
     }
 }

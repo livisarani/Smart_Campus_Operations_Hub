@@ -7,7 +7,7 @@ const Login = () => {
 	const navigate = useNavigate();
 
 	if (isAuthenticated) {
-		return <Navigate to={user?.role === 'ADMIN' ? '/admin/dashboard' : '/dashboard'} replace />;
+		return <Navigate to={user?.role === 'ADMIN' ? '/admin/dashboard' : '/bookings'} replace />;
 	}
 
 	const handleLogin = (role) => {
@@ -16,7 +16,7 @@ const Login = () => {
 			navigate('/admin/dashboard');
 		} else {
 			login('john@campus.com', 'John Doe', 'USER');
-			navigate('/dashboard');
+			navigate('/bookings');
 		}
 	};
 

@@ -126,8 +126,12 @@ const BookingDetails = () => {
 	return (
 		<div className="booking-details-page booking-details-v2">
 			<nav className="booking-breadcrumb" aria-label="Breadcrumb">
-				<Link to="/rooms">Resources</Link>
-				<span aria-hidden="true">›</span>
+				{isAdmin() && (
+					<>
+						<Link to="/rooms">Resources</Link>
+						<span aria-hidden="true">›</span>
+					</>
+				)}
 				<Link to="/bookings">Bookings</Link>
 				<span aria-hidden="true">›</span>
 				<span>#BK-{booking.id}</span>

@@ -27,6 +27,9 @@ public interface BookingService {
     List<BookingResponseDTO> getAllBookings(String adminEmail, Long userId, Long resourceId, 
                                            BookingStatus status, LocalDateTime startDate, 
                                            LocalDateTime endDate);
+
+    byte[] generateBookingsReport(String adminEmail, LocalDateTime startDate, LocalDateTime endDate,
+                                  BookingStatus status);
     
     boolean checkConflict(Long resourceId, LocalDateTime startTime, LocalDateTime endTime);
 }

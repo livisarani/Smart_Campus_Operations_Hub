@@ -1,6 +1,6 @@
 import React from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
-import { FiGrid, FiCalendar, FiFileText, FiHome, FiSettings, FiLogOut } from 'react-icons/fi';
+import { FiCalendar, FiFileText, FiSettings, FiLogOut } from 'react-icons/fi';
 import { useAuth } from '../../context/AuthContext';
 
 const Sidebar = () => {
@@ -16,19 +16,12 @@ const Sidebar = () => {
 		<aside className="sidebar">
 			<div className="sidebar-top">
 				<nav className="sidebar-nav" aria-label="Sidebar">
-					<NavLink
-						to={isAdmin() ? '/admin/dashboard' : '/dashboard'}
-						className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}
-						end
-					>
-						<FiGrid />
-						<span>Dashboard</span>
-					</NavLink>
-
-					<NavLink to="/bookings" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-						<FiCalendar />
-						<span>Bookings</span>
-					</NavLink>
+					{!isAdmin() && (
+						<NavLink to="/bookings" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
+							<FiCalendar />
+							<span>Bookings</span>
+						</NavLink>
+					)}
 
 					{isAdmin() && (
 						<NavLink to="/admin/bookings" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
@@ -37,10 +30,6 @@ const Sidebar = () => {
 						</NavLink>
 					)}
 
-					<NavLink to="/rooms" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
-						<FiHome />
-						<span>Rooms</span>
-					</NavLink>
 				</nav>
 			</div>
 

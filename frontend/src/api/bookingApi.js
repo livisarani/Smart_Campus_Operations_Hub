@@ -21,6 +21,13 @@ export const bookingApi = {
 
   // Delete booking request (Admin only; approved/rejected/cancelled only)
   deleteBooking: (id) => api.delete(`/bookings/${id}`),
+
+  // Generate a PDF report for booking requests (Admin only)
+  generateReport: (filters) =>
+    api.get('/bookings/report', {
+      params: filters,
+      responseType: 'blob',
+    }),
   
   // Get all bookings with filters (Admin only)
   getAllBookings: (filters) => {

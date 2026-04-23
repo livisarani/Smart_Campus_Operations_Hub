@@ -1,11 +1,40 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { FiAlertTriangle, FiCheck, FiClock, FiX, FiTrash2 } from 'react-icons/fi';
+import { FiAlertTriangle, FiCheck, FiClock, FiDownload, FiX, FiTrash2 } from 'react-icons/fi';
 import { bookingApi } from '../../api/bookingApi';
 import BookingStatusBadge from './BookingStatusBadge';
 import Modal from '../../components/common/Modal';
 import LoadingSpinner from '../../components/common/LoadingSpinner';
 import ErrorAlert from '../../components/common/ErrorAlert';
+
+const buildLocalDateTimeInputValue = (date) => {
+  const pad = (value) => String(value).padStart(2, '0');
+  return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}T${pad(date.getHours())}:${pad(
+    date.getMinutes()
+  )}`;
+};
+
+const createDefaultReportFilters = () => {
+  const now = new Date();
+  const start = new Date(now);
+  start.setDate(start.getDate() - 7);
+  start.setSeconds(0, 0);
+  now.setSeconds(0, 0);
+
+  return {
+    startDate: buildLocalDateTimeInputValue(start),
+    endDate: buildLocalDateTimeInputValue(now),
+    status: 'ALL',
+  };
+};
+
+const REPORT_STATUS_OPTIONS = [
+  { value: 'ALL', label: 'All statuses' },
+  { value: 'PENDING', label: 'Pending' },
+  { value: 'APPROVED', label: 'Approved' },
+  { value: 'REJECTED', label: 'Rejected' },
+  { value: 'CANCELLED', label: 'Cancelled' },
+];
 
 const BookingApproval = () => {
   const navigate = useNavigate();
@@ -19,6 +48,8 @@ const BookingApproval = () => {
   const [showDeleteModal, setShowDeleteModal] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState(null);
   const [error, setError] = useState(null);
+  const [showReportModal, setShowReportModal] = useState(false);
+  const [reportFilters, setReportFilters] = useState(createDefaultReportFilters);
 
   const getErrorText = (err, fallback) => {
     if (!err) return fallback;
@@ -96,6 +127,49 @@ const BookingApproval = () => {
     navigate(`/bookings/${booking.id}`, { state: { booking } });
   };
 
+  const handleOpenReportModal = () => {
+    setReportFilters(createDefaultReportFilters());
+    setShowReportModal(true);
+    setError(null);
+  };
+
+  const handleGenerateReport = async () => {
+    try {
+      if (!reportFilters.startDate || !reportFilters.endDate) {
+        setError('Please select both a start date/time and an end date/time.');
+        return;
+      }
+
+      if (new Date(reportFilters.endDate) < new Date(reportFilters.startDate)) {
+        setError('End date/time must be after the start date/time.');
+        return;
+      }
+
+      const reportParams = {
+        startDate: reportFilters.startDate,
+        endDate: reportFilters.endDate,
+      };
+
+      if (reportFilters.status !== 'ALL') {
+        reportParams.status = reportFilters.status;
+      }
+
+      const blob = await bookingApi.generateReport(reportParams);
+
+      const downloadUrl = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+      link.download = `booking-requests-report-${reportFilters.status || 'ALL'}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+      window.URL.revokeObjectURL(downloadUrl);
+      setShowReportModal(false);
+    } catch (err) {
+      setError(getErrorText(err, 'Failed to generate report'));
+    }
+  };
+
   const formatDate = (dateString) =>
     new Date(dateString).toLocaleDateString(undefined, {
       month: 'short',
@@ -132,6 +206,9 @@ const BookingApproval = () => {
           <h1>Request Management</h1>
           <p>Oversee and manage space allocation requests across the campus ecosystem.</p>
         </div>
+        <button type="button" className="report-generate-btn" onClick={handleOpenReportModal}>
+          <FiDownload /> Generate Report
+        </button>
       </div>
 
       <div className="booking-tabs booking-tabs-grid" role="tablist" aria-label="Bookings">
@@ -360,6 +437,57 @@ const BookingApproval = () => {
           </div>
 
           <p className="delete-request-footnote">This will release the reserved time slot immediately.</p>
+        </div>
+      </Modal>
+
+      <Modal isOpen={showReportModal} onClose={() => setShowReportModal(false)} title="Generate PDF Report">
+        <div className="modal-form report-modal">
+          <p className="report-modal-intro">
+            Select a date range and status to export booking requests as a PDF report.
+          </p>
+
+          <div className="report-grid">
+            <div className="form-group">
+              <label>Start Date &amp; Time</label>
+              <input
+                type="datetime-local"
+                value={reportFilters.startDate}
+                onChange={(e) => setReportFilters((prev) => ({ ...prev, startDate: e.target.value }))}
+              />
+            </div>
+
+            <div className="form-group">
+              <label>End Date &amp; Time</label>
+              <input
+                type="datetime-local"
+                value={reportFilters.endDate}
+                onChange={(e) => setReportFilters((prev) => ({ ...prev, endDate: e.target.value }))}
+              />
+            </div>
+
+            <div className="form-group report-status-field">
+              <label>Status</label>
+              <select
+                value={reportFilters.status}
+                onChange={(e) => setReportFilters((prev) => ({ ...prev, status: e.target.value }))}
+              >
+                {REPORT_STATUS_OPTIONS.map((option) => (
+                  <option key={option.value} value={option.value}>
+                    {option.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
+
+          <div className="modal-actions report-actions">
+            <button className="btn-cancel" onClick={() => setShowReportModal(false)}>
+              Cancel
+            </button>
+            <button className="btn-submit report-submit" onClick={handleGenerateReport}>
+              Generate PDF
+            </button>
+          </div>
         </div>
       </Modal>
     </div>
