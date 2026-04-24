@@ -25,41 +25,26 @@ public class BookingController {
 
     private final BookingService bookingService;
 
-    /**
-     * Create a new booking request
-     * POST /api/bookings
-     */
     @PostMapping
     public ResponseEntity<BookingResponseDTO> createBooking(
             @Valid @RequestBody BookingRequestDTO requestDTO,
             @RequestHeader(value = "X-User-Email", defaultValue = "user@campus.com") String userEmail,
             @RequestHeader(value = "X-User-Name", defaultValue = "User") String userName) {
         return new ResponseEntity<>(
-            bookingService.createBooking(requestDTO, userEmail, userName), 
-            HttpStatus.CREATED);
+                bookingService.createBooking(requestDTO, userEmail, userName),
+                HttpStatus.CREATED);
     }
 
-    /**
-     * Get current user's bookings
-     * GET /api/bookings/my?userId=1
-     */
     @GetMapping("/my")
     public ResponseEntity<List<BookingResponseDTO>> getMyBookings(
             @RequestParam(required = false) Long userId,
             @RequestHeader(value = "X-User-Email", defaultValue = "user@campus.com") String userEmail) {
-        // Prefer email-based lookup to ensure the caller sees only their bookings.
-        // Keep userId param for backward compatibility.
         if (userEmail != null && !userEmail.isBlank()) {
             return ResponseEntity.ok(bookingService.getUserBookingsByEmail(userEmail));
         }
-
         return ResponseEntity.ok(bookingService.getUserBookings(userId));
     }
 
-    /**
-     * Get all bookings with filters (Admin only)
-     * GET /api/bookings?userId=1&resourceId=2&status=PENDING
-     */
     @GetMapping
     public ResponseEntity<List<BookingResponseDTO>> getAllBookings(
             @RequestParam(required = false) Long userId,
@@ -68,14 +53,10 @@ public class BookingController {
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime endDate,
             @RequestHeader(value = "X-User-Email", defaultValue = "admin@campus.com") String adminEmail) {
-        return ResponseEntity.ok(bookingService.getAllBookings(adminEmail, userId, resourceId, 
-                                status, startDate, endDate));
+        return ResponseEntity.ok(
+                bookingService.getAllBookings(adminEmail, userId, resourceId, status, startDate, endDate));
     }
 
-    /**
-     * Approve a booking (Admin only)
-     * PUT /api/bookings/{id}/approve
-     */
     @PutMapping("/{id}/approve")
     public ResponseEntity<BookingResponseDTO> approveBooking(
             @PathVariable Long id,
@@ -87,10 +68,6 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.approveBooking(id, actionDTO, adminEmail));
     }
 
-    /**
-     * Reject a booking (Admin only)
-     * PUT /api/bookings/{id}/reject
-     */
     @PutMapping("/{id}/reject")
     public ResponseEntity<BookingResponseDTO> rejectBooking(
             @PathVariable Long id,
@@ -99,10 +76,6 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.rejectBooking(id, actionDTO, adminEmail));
     }
 
-    /**
-     * Cancel a booking
-     * PUT /api/bookings/{id}/cancel
-     */
     @PutMapping("/{id}/cancel")
     public ResponseEntity<BookingResponseDTO> cancelBooking(
             @PathVariable Long id,
@@ -114,10 +87,6 @@ public class BookingController {
         return ResponseEntity.ok(bookingService.cancelBooking(id, actionDTO, userEmail));
     }
 
-    /**
-     * Delete a processed booking request (Admin only)
-     * DELETE /api/bookings/{id}
-     */
     @DeleteMapping("/{id}")
     public ResponseEntity<Void> deleteBooking(
             @PathVariable Long id,
@@ -126,10 +95,6 @@ public class BookingController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Check if a time slot has conflicts
-     * GET /api/bookings/check-conflict?resourceId=1&startTime=2024-01-01T10:00:00&endTime=2024-01-01T12:00:00
-     */
     @GetMapping("/check-conflict")
     public ResponseEntity<Map<String, Object>> checkConflict(
             @RequestParam Long resourceId,
@@ -138,17 +103,12 @@ public class BookingController {
         boolean hasConflict = bookingService.checkConflict(resourceId, startTime, endTime);
         Map<String, Object> response = new HashMap<>();
         response.put("hasConflict", hasConflict);
-        response.put("message",
-                hasConflict
-                        ? "Selected resource is already booked for the chosen time slot."
-                        : "Resource is available for the selected time slot.");
+        response.put("message", hasConflict
+                ? "Selected resource is already booked for the chosen time slot."
+                : "Resource is available for the selected time slot.");
         return ResponseEntity.ok(response);
     }
 
-    /**
-     * Generate a PDF report for booking requests
-     * GET /api/bookings/report?startDate=2024-01-01T00:00:00&endDate=2024-01-31T23:59:59&status=PENDING
-     */
     @GetMapping(value = "/report", produces = "application/pdf")
     public ResponseEntity<byte[]> generateReport(
             @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE_TIME) LocalDateTime startDate,

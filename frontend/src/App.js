@@ -13,6 +13,11 @@ import BookingApproval from './pages/Bookings/BookingApproval';
 import ResourceList from './pages/Resources/ResourceList';
 import BookingSuccess from './pages/Bookings/BookingSuccess';
 import BookingDetails from './pages/Bookings/BookingDetails';
+import Notifications from './pages/Auth/Notifications';
+import TicketList from './pages/Tickets/TicketList';
+import TicketForm from './pages/Tickets/TicketForm';
+import TicketDetails from './pages/Tickets/TicketDetails';
+import MyTickets from './pages/Tickets/MyTickets';
 
 function AppRoutes() {
   const { isAdmin } = useAuth();
@@ -22,24 +27,33 @@ function AppRoutes() {
       <Route path="/login" element={<Login />} />
       <Route element={<PrivateRoute />}>
         <Route element={<Layout />}>
-          <Route path="/" element={<Navigate to={isAdmin() ? '/admin/dashboard' : '/bookings'} />} />
+          <Route path="/" element={<Navigate to={isAdmin ? '/admin/dashboard' : '/bookings'} replace />} />
           <Route
             path="/dashboard"
-            element={isAdmin() ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="/bookings" replace />}
+            element={isAdmin ? <Navigate to="/admin/dashboard" replace /> : <Navigate to="/bookings" replace />}
           />
           <Route
             path="/admin/dashboard"
-            element={isAdmin() ? <Dashboard /> : <Navigate to="/bookings" replace />}
+            element={isAdmin ? <Dashboard /> : <Navigate to="/bookings" replace />}
           />
           <Route path="/bookings" element={<BookingList />} />
           <Route path="/bookings/new" element={<BookingForm />} />
           <Route path="/bookings/:id" element={<BookingDetails />} />
-          <Route path="/rooms" element={isAdmin() ? <ResourceList /> : <Navigate to="/bookings" replace />} />
+          <Route path="/rooms" element={isAdmin ? <ResourceList /> : <Navigate to="/bookings" replace />} />
           <Route path="/bookings/success" element={<BookingSuccess />} />
           <Route
             path="/admin/bookings"
-            element={isAdmin() ? <BookingApproval /> : <Navigate to="/bookings" replace />}
+            element={isAdmin ? <BookingApproval /> : <Navigate to="/bookings" replace />}
           />
+
+          <Route path="/notifications" element={<Notifications />} />
+          <Route path="/tickets" element={<TicketList />} />
+          <Route path="/tickets/new" element={<TicketForm />} />
+          <Route path="/tickets/my" element={<MyTickets />} />
+          <Route path="/tickets/:id" element={<TicketDetails />} />
+          <Route path="/tickets/:id/edit" element={<TicketForm />} />
+
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
       </Route>
     </Routes>

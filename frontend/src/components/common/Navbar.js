@@ -5,7 +5,7 @@ import { useAuth } from '../../context/AuthContext';
 
 const Navbar = () => {
   const { isAdmin } = useAuth();
-  const dashboardPath = isAdmin?.() ? '/admin/dashboard' : '/bookings';
+  const dashboardPath = isAdmin ? '/admin/dashboard' : '/bookings';
 
   return (
     <header className="topbar">

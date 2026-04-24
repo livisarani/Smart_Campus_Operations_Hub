@@ -16,14 +16,14 @@ const Sidebar = () => {
 		<aside className="sidebar">
 			<div className="sidebar-top">
 				<nav className="sidebar-nav" aria-label="Sidebar">
-					{!isAdmin() && (
+					{!isAdmin && (
 						<NavLink to="/bookings" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
 							<FiCalendar />
 							<span>Bookings</span>
 						</NavLink>
 					)}
 
-					{isAdmin() && (
+					{isAdmin && (
 						<NavLink to="/admin/bookings" className={({ isActive }) => `sidebar-link ${isActive ? 'active' : ''}`}>
 							<FiFileText />
 							<span>Requests</span>

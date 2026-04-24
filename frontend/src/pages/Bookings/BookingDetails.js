@@ -36,7 +36,7 @@ const BookingDetails = () => {
 
 			try {
 				setLoading(true);
-				const list = isAdmin()
+				const list = isAdmin
 					? await bookingApi.getAllBookings({})
 					: await bookingApi.getUserBookings(1);
 
@@ -126,7 +126,7 @@ const BookingDetails = () => {
 	return (
 		<div className="booking-details-page booking-details-v2">
 			<nav className="booking-breadcrumb" aria-label="Breadcrumb">
-				{isAdmin() && (
+				{isAdmin && (
 					<>
 						<Link to="/rooms">Resources</Link>
 						<span aria-hidden="true">›</span>
@@ -294,7 +294,7 @@ const BookingDetails = () => {
 						</section>
 					) : null}
 
-					{!isAdmin?.() && booking.status === 'PENDING' && (
+					{!isAdmin && booking.status === 'PENDING' && (
 						<button type="button" className="btn-cancel-booking" onClick={handleCancel}>
 							<FiXCircle /> Cancel Booking
 						</button>

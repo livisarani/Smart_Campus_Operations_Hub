@@ -20,7 +20,7 @@ const ResourceList = () => {
 					<p>View and manage campus facilities and capacities.</p>
 				</div>
 
-				{isAdmin() ? (
+				{isAdmin ? (
 					<button type="button" className="add-room-btn">
 						<FiPlus />
 						<span>Add Room</span>
@@ -61,7 +61,7 @@ const ResourceList = () => {
 							</div>
 						</div>
 
-						{isAdmin() ? (
+						{isAdmin ? (
 							<div className="room-actions">
 								<button type="button" className="room-edit-btn">Edit</button>
 								<button type="button" className="room-schedule-btn">Schedule</button>

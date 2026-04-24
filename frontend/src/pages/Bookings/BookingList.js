@@ -40,7 +40,7 @@ const BookingList = () => {
   const [highlightBookingId, setHighlightBookingId] = useState(null);
   const bookingRefs = useRef({});
   const { isAdmin } = useAuth();
-  const adminView = isAdmin();
+  const adminView = isAdmin;
 
   useEffect(() => {
     loadBookings();
