@@ -425,11 +425,27 @@ public class TicketService {
                         .id(h.getId())
                         .event(h.getEvent())
                         .description(h.getDescription())
-                        .actorUsername(h.getActor() != null ? h.getActor().getUsername() : null)
-                        .actorFullName(h.getActor() != null ? h.getActor().getFullName() : null)
+                        .actorUsername(resolveActorUsername(h))
+                        .actorFullName(resolveActorFullName(h))
                         .timestamp(h.getTimestamp())
                         .build())
                 .collect(Collectors.toList());
+    }
+
+    private String resolveActorUsername(TicketHistory history) {
+        try {
+            return history.getActor() != null ? history.getActor().getUsername() : null;
+        } catch (Exception ignored) {
+            return null;
+        }
+    }
+
+    private String resolveActorFullName(TicketHistory history) {
+        try {
+            return history.getActor() != null ? history.getActor().getFullName() : null;
+        } catch (Exception ignored) {
+            return null;
+        }
     }
 
     /** Internal helper – saves a history record (suppressed from outer @Transactional) */

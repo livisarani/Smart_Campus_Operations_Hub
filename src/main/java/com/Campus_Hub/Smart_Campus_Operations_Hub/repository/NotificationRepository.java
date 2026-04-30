@@ -2,6 +2,8 @@ package com.Campus_Hub.Smart_Campus_Operations_Hub.repository;
 
 import com.Campus_Hub.Smart_Campus_Operations_Hub.model.Notification;
 import com.Campus_Hub.Smart_Campus_Operations_Hub.model.User;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
@@ -11,5 +13,9 @@ import java.util.List;
 public interface NotificationRepository extends JpaRepository<Notification, Long> {
     List<Notification> findByRecipientAndReadFalseOrderByCreatedAtDesc(User recipient);
     List<Notification> findByRecipientOrderByCreatedAtDesc(User recipient);
+    Page<Notification> findByRecipientOrderByCreatedAtDesc(User recipient, Pageable pageable);
+    Page<Notification> findByRecipientAndReadFalseOrderByCreatedAtDesc(User recipient, Pageable pageable);
+    long countByRecipientAndReadFalse(User recipient);
+    void deleteByRecipientAndReadTrue(User recipient);
 }
 

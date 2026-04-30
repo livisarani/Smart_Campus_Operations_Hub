@@ -1,6 +1,7 @@
 // src/App.jsx
 import { useEffect } from 'react'
 import { BrowserRouter, Routes, Route, NavLink, Navigate } from 'react-router-dom'
+import { ToastContainer } from 'react-toastify'
 import useAuthStore from './context/authStore.js'
 import { ProtectedRoute, AdminRoute } from './components/auth/ProtectedRoute.jsx'
 import NotificationPanel from './components/notifications/NotificationPanel.jsx'
@@ -8,6 +9,16 @@ import LoginPage from './pages/LoginPage.jsx'
 import OAuth2RedirectHandler from './pages/OAuth2RedirectHandler.jsx'
 import RoleManagerPage from './pages/RoleManagerPage.jsx'
 import DashboardPage from './pages/DashboardPage.jsx'
+import ResourcesPage from './pages/ResourcesPage.jsx'
+import BookingList from './pages/Bookings/BookingList.jsx'
+import BookingForm from './pages/Bookings/BookingForm.jsx'
+import BookingDetails from './pages/Bookings/BookingDetails.jsx'
+import BookingApproval from './pages/Bookings/BookingApproval.jsx'
+import BookingSuccess from './pages/Bookings/BookingSuccess.jsx'
+import TicketList from './pages/Tickets/TicketList.jsx'
+import TicketForm from './pages/Tickets/TicketForm.jsx'
+import TicketDetails from './pages/Tickets/TicketDetails.jsx'
+import MyTickets from './pages/Tickets/MyTickets.jsx'
 
 // ─── Theme Tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -46,12 +57,22 @@ const RoleIcon = () => <svg style={iconStyle} viewBox="0 0 24 24"><path d="M17 2
 const SettingsIcon = () => <svg style={iconStyle} viewBox="0 0 24 24"><circle cx="12" cy="12" r="3" /><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06A1.65 1.65 0 0 0 19.4 9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z" /></svg>
 const SearchIcon = () => <svg style={{ ...iconStyle, width: 14, height: 14, color: '#8a948d' }} viewBox="0 0 24 24"><circle cx="11" cy="11" r="8" /><line x1="21" y1="21" x2="16.65" y2="16.65" /></svg>
 
-const Placeholder = ({ title }) => (
-  <div style={{ padding: 40 }}>
-    <h2 style={{ color: T.textPrimary, fontSize: 22, fontWeight: 700, margin: '0 0 8px' }}>{title}</h2>
-    <p style={{ color: T.textSecondary, fontSize: 14, margin: 0 }}>This module is under development.</p>
-  </div>
-)
+function Placeholder({ title }) {
+  return (
+    <div style={{ padding: '32px 36px', background: T.bg, minHeight: 'calc(100vh - 62px)' }}>
+      <div style={{
+        background: T.surface,
+        border: `1px solid ${T.border}`,
+        borderRadius: 14,
+        padding: 32,
+        boxShadow: '0 2px 10px rgba(35,99,49,0.06)',
+      }}>
+        <h1 style={{ margin: '0 0 8px', color: T.textPrimary, fontSize: 22, fontWeight: 800 }}>{title}</h1>
+        <p style={{ margin: 0, color: T.textSecondary, fontSize: 14 }}>This module is under development.</p>
+      </div>
+    </div>
+  )
+}
 
 const NAV = [
   { to: '/dashboard', label: 'Dashboard', icon: DashIcon },
@@ -208,9 +229,17 @@ function AppLayout() {
         <main style={{ flex: 1 }}>
           <Routes>
             <Route path="/dashboard" element={<DashboardPage />} />
-            <Route path="/resources" element={<Placeholder title="Resources" />} />
-            <Route path="/bookings" element={<Placeholder title="Bookings" />} />
-            <Route path="/tickets" element={<Placeholder title="Tickets" />} />
+            <Route path="/resources" element={<ResourcesPage />} />
+            <Route path="/bookings" element={<div style={{ padding: '28px 36px', minHeight: 'calc(100vh - 62px)' }}><BookingList /></div>} />
+            <Route path="/bookings/new" element={<div style={{ padding: '28px 36px', minHeight: 'calc(100vh - 62px)' }}><BookingForm /></div>} />
+            <Route path="/bookings/success" element={<BookingSuccess />} />
+            <Route path="/bookings/approval" element={<div style={{ padding: '28px 36px', minHeight: 'calc(100vh - 62px)' }}><BookingApproval /></div>} />
+            <Route path="/bookings/:id" element={<div style={{ padding: '28px 36px', minHeight: 'calc(100vh - 62px)' }}><BookingDetails /></div>} />
+            <Route path="/tickets" element={<TicketList />} />
+            <Route path="/tickets/new" element={<TicketForm />} />
+            <Route path="/tickets/my" element={<MyTickets />} />
+            <Route path="/tickets/:id" element={<TicketDetails />} />
+            <Route path="/tickets/:id/edit" element={<TicketForm />} />
             <Route path="/settings" element={<Placeholder title="Settings" />} />
             <Route path="/admin/roles" element={<AdminRoute />}>
               <Route index element={<RoleManagerPage />} />
@@ -236,6 +265,7 @@ export default function App() {
         </Route>
         <Route path="/" element={<Navigate to="/dashboard" replace />} />
       </Routes>
+      <ToastContainer position="bottom-right" autoClose={2500} />
     </BrowserRouter>
   )
 }

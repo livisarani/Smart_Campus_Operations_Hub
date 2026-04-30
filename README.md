@@ -1,142 +1,68 @@
 # Smart Campus Operations Hub
 
-##  Overview
+## Run (Frontend)
 
-This project is developed for the **IT3030 – Programming Applications and Frameworks** assignment.
+From the project root:
 
-It is a full-stack web application designed to manage university operations including:
+- Install deps: `npm run frontend:install`
+- Start dev server: `npm run dev`
 
-* Facility and asset bookings
-* Maintenance and incident handling
+Or run directly from the frontend folder:
 
-The system provides a centralized platform with role-based access and workflow management.
+- `cd frontend`
+- `npm install`
+- `npm run dev`
 
----
+## Run (Backend)
 
-##  Business Scenario
+From the project root:
 
-A university requires a modern system to:
+- `./mvnw spring-boot:run`
 
-* Manage rooms, labs, and equipment bookings
-* Handle maintenance issues and incident reporting
-* Provide role-based workflows and notifications
+Notes:
+- Don’t run `npm` commands inside the backend `src/` folder — it has no `package.json`.
 
----
+## Continue With Google (OAuth2) Setup
 
-##  Features
+Use these values in Google Cloud Console and local environment variables.
 
-###  Module A – Facilities & Assets Catalogue
+### 1. Google Cloud Console
 
-* Manage resources (rooms, labs, equipment)
-* Metadata: type, capacity, location, availability
-* Search and filtering
+1. Open Google Cloud Console -> APIs & Services -> Credentials.
+2. Create credentials: OAuth client ID.
+3. Application type: Web application.
+4. Add Authorized JavaScript origins:
+	- `http://localhost:3000`
+5. Add Authorized redirect URIs:
+	- `http://localhost:8081/oauth2/callback/google`
 
-###  Module B – Booking Management
+### 2. Backend Environment Variables
 
-* Request bookings (date, time, purpose)
-* Booking workflow:
+Set these before starting backend:
 
-  * PENDING → APPROVED / REJECTED → CANCELLED
-* Conflict prevention
-* Admin approval system
+- `GOOGLE_CLIENT_ID=<your_google_client_id>`
+- `GOOGLE_CLIENT_SECRET=<your_google_client_secret>`
+- `APP_OAUTH2_REDIRECT_URI=http://localhost:3000/oauth2/redirect`
 
-###  Module C – Incident & Maintenance
+PowerShell example:
 
-* Create incident tickets
-* Attach images (up to 3)
-* Workflow:
+```powershell
+$env:GOOGLE_CLIENT_ID="your-google-client-id"
+$env:GOOGLE_CLIENT_SECRET="your-google-client-secret"
+$env:APP_OAUTH2_REDIRECT_URI="http://localhost:3000/oauth2/redirect"
+./mvnw.cmd spring-boot:run -Dspring-boot.run.arguments=--server.port=8081
+```
 
-  * OPEN → IN_PROGRESS → RESOLVED → CLOSED
-* Technician assignment and updates
+### 3. Frontend (optional override)
 
-###  Module D – Notifications
+By default, frontend uses same-origin `/oauth2/...` and Vite proxy.
+If needed, set:
 
-* Booking updates
-* Ticket status updates
-* Comments notifications
+- `VITE_OAUTH_BASE_URL=http://localhost:8081`
 
-###  Module E – Authentication & Authorization
+### 4. Expected Flow
 
-* OAuth 2.0 login (Google)
-* Role-based access:
-
-  * USER
-  * ADMIN
-  * (Optional: TECHNICIAN)
-
----
-
-##  Tech Stack
-
-* Frontend: React / Expo
-* Backend: Spring Boot (Java)
-* Database: (MySQL / MongoDB – update yours)
-* Authentication: OAuth 2.0
-* Version Control: GitHub + GitHub Actions
-
----
-
-##  Setup Instructions
-
-###  Frontend
-
-From project root:
-
-* npm run frontend:install
-* npm run dev
-
-Or:
-
-* cd frontend
-* npm install
-* npm run dev
-
----
-
-###  Backend
-
-From project root:
-
-* ./mvnw spring-boot:run
-
----
-
-##  System Workflow
-
-### Booking Flow:
-
-User → Request → Admin → Approve/Reject
-
-### Ticket Flow:
-
-User → Create Ticket → Technician → Resolve → Close
-
----
-
-##  Testing & Quality
-
-* API tested using Postman
-* Validation and error handling implemented
-* Clean architecture followed
-
----
-
-##  Team Contribution
-
-* Member 1: Facilities module
-* Member 2: Booking module
-* Member 3: Incident module
-* Member 4: Auth & Notifications
-
----
-
-##  Repository
-
-GitHub repository with version control and CI workflow is used.
----
-
-##  Notes
-
-* Backend and frontend are there
-* Secure API endpoints
-* Maintainable code structure
+1. Click `Continue with Google` on `/login`.
+2. Browser goes to `/oauth2/authorize/google`.
+3. Google redirects backend to `/oauth2/callback/google`.
+4. Backend redirects frontend to `/oauth2/redirect?token=...&refreshToken=...`.

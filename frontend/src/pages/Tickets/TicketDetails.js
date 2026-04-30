@@ -6,8 +6,8 @@ import {
   getTicketHistory, downloadReport
 } from '../../api/ticketApi';
 import { useAuth } from '../../context/AuthContext';
+import client from '../../api/client.js';
 import { STATUS_COLORS, PRIORITY_COLORS } from '../../utils/constants';
-import axios from 'axios';
 
 // ── Theme ─────────────────────────────────────────────────────────────────────
 const T = {
@@ -120,7 +120,7 @@ const TicketDetails = () => {
 
   useEffect(() => {
     if (isAdmin) {
-      axios.get('/api/tickets/technicians')
+      client.get('/tickets/technicians')
         .then(r => setTechnicians(r.data || []))
         .catch(() => setTechnicians([]));
     }

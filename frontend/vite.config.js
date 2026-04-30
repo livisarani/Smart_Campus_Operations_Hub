@@ -6,9 +6,9 @@ export default defineConfig({
   server: {
     port: 3000,
     proxy: {
-      '/api': { target: 'http://localhost:8080', changeOrigin: true },
-      '/oauth2/authorize': { target: 'http://localhost:8080', changeOrigin: true },
-      '/oauth2/callback': { target: 'http://localhost:8080', changeOrigin: true }
+      '/api': { target: 'http://localhost:8081', changeOrigin: true },
+      '/oauth2/authorize': { target: 'http://localhost:8081', changeOrigin: true },
+      '/oauth2/callback': { target: 'http://localhost:8081', changeOrigin: true }
     }
   }
 })

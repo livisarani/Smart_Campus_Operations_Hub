@@ -1,7 +1,9 @@
 // src/pages/DashboardPage.jsx
 import { useState, useEffect } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { notificationsApi } from '../api/index.js'
 import useAuthStore from '../context/authStore.js'
+import { getMyTickets } from '../api/ticketApi.js'
 
 // ─── Theme Tokens ─────────────────────────────────────────────────────────────
 const T = {
@@ -102,11 +104,13 @@ function QuickAction({ icon, label, desc, onClick }) {
 
 // ─── Main Page ────────────────────────────────────────────────────────────────
 export default function DashboardPage() {
+  const navigate = useNavigate()
   const { user } = useAuthStore()
   const [notifications, setNotifications] = useState([])
   const [unreadCount, setUnreadCount]     = useState(0)
   const [loading, setLoading]             = useState(true)
   const [greeting, setGreeting]           = useState('')
+  const [myTicketStats, setMyTicketStats] = useState({ total: 0, open: 0, inProgress: 0, resolved: 0 })
 
   useEffect(() => {
     const h = new Date().getHours()
@@ -124,8 +128,26 @@ export default function DashboardPage() {
   }, [])
 
   const topRole = user?.roles?.includes('ADMIN') ? 'Admin'
-    : user?.roles?.includes('MANAGER') ? 'Manager'
-    : user?.roles?.includes('TECHNICIAN') ? 'Technician' : 'User'
+    : user?.roles?.includes('TECHNICIAN') ? 'Technician'
+    : user?.roles?.includes('STAFF') ? 'Staff' : 'Student'
+  const isStudent = topRole === 'Student'
+  const isAdmin = topRole === 'Admin'
+  const isTechnician = topRole === 'Technician'
+
+  useEffect(() => {
+    if (!isStudent) return
+    getMyTickets()
+      .then(tickets => {
+        const stats = {
+          total: tickets.length,
+          open: tickets.filter(t => t.status === 'OPEN').length,
+          inProgress: tickets.filter(t => t.status === 'IN_PROGRESS').length,
+          resolved: tickets.filter(t => t.status === 'RESOLVED').length,
+        }
+        setMyTicketStats(stats)
+      })
+      .catch(() => {})
+  }, [isStudent])
 
   const stats = [
     { label: 'Unread',   value: unreadCount,           accent: T.primary,   icon: '🔔' },
@@ -136,9 +158,131 @@ export default function DashboardPage() {
 
   const roleColors = {
     ADMIN:      { bg: '#dcfce7', color: T.primary },
-    MANAGER:    { bg: '#fef3c7', color: '#d97706' },
     TECHNICIAN: { bg: '#dbeafe', color: '#1d4ed8' },
-    USER:       { bg: '#f0f1f0', color: T.secondary },
+    STAFF:      { bg: '#fef3c7', color: '#d97706' },
+    STUDENT:    { bg: '#f0f1f0', color: T.secondary },
+  }
+
+  if (isStudent) {
+    return (
+      <div style={{ padding: '32px 36px', background: T.bg, minHeight: 'calc(100vh - 62px)', animation: 'fadeSlideUp 0.4s ease-out forwards' }}>
+        <div style={{
+          background: `linear-gradient(135deg, ${T.primary} 0%, ${T.secondary} 100%)`,
+          borderRadius: 18,
+          padding: '24px 28px',
+          marginBottom: 24,
+          boxShadow: '0 4px 20px rgba(35,99,49,0.22)',
+        }}>
+          <h1 style={{ margin: '0 0 4px', fontSize: 24, fontWeight: 800, color: '#fff' }}>{greeting}, {user?.name?.split(' ')[0]} 👋</h1>
+          <p style={{ margin: 0, color: 'rgba(255,255,255,0.75)', fontSize: 13 }}>
+            Student dashboard: track your own tickets and report incidents quickly.
+          </p>
+        </div>
+
+        <div style={{ display: 'flex', gap: 16, marginBottom: 24, flexWrap: 'wrap' }}>
+          <StatCard label="My Tickets" value={myTicketStats.total} accent={T.primary} icon="🎫" />
+          <StatCard label="Open" value={myTicketStats.open} accent="#d97706" icon="🔓" />
+          <StatCard label="In Progress" value={myTicketStats.inProgress} accent="#2563eb" icon="⚙️" />
+          <StatCard label="Resolved" value={myTicketStats.resolved} accent="#16a34a" icon="✅" />
+        </div>
+
+        <div style={{
+          background: '#e8f5eb',
+          border: '1px solid #c8e6cc',
+          borderRadius: 12,
+          padding: '11px 16px',
+          marginBottom: 18,
+          display: 'flex',
+          gap: 8,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          fontSize: 12,
+          color: T.muted,
+          fontWeight: 600,
+        }}>
+          <span>🔐 Logged in</span><span style={{ color: T.primary }}>→</span>
+          <span>➕ Report incident</span><span style={{ color: T.primary }}>→</span>
+          <span>📋 Track my tickets</span><span style={{ color: T.primary }}>→</span>
+          <span>💬 View updates/comments</span>
+        </div>
+
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
+          <SectionCard title="Recent Notifications" badge={unreadCount > 0 ? `${unreadCount} unread` : null}>
+            {loading ? (
+              <div style={{ padding: 32, textAlign: 'center', color: T.faint, fontSize: 13 }}>Loading…</div>
+            ) : notifications.length === 0 ? (
+              <div style={{ padding: 36, textAlign: 'center', color: T.faint, fontSize: 13 }}>
+                <div style={{ fontSize: 28, marginBottom: 8 }}>🔕</div>
+                No notifications yet
+              </div>
+            ) : (
+              notifications.map(n => {
+                const meta = NOTIF_ICONS[n.type] || { icon: '•', color: T.faint, bg: '#f0f1f0' }
+                return (
+                  <div key={n.id} style={{
+                    padding: '12px 20px', borderBottom: `1px solid ${T.border}`,
+                    display: 'flex', gap: 12, alignItems: 'flex-start',
+                    background: n.isRead ? T.surface : '#f0faf3'
+                  }}>
+                    <div style={{
+                      width: 32, height: 32, borderRadius: 8, background: meta.bg, flexShrink: 0,
+                      display: 'flex', alignItems: 'center', justifyContent: 'center',
+                      color: meta.color, fontSize: 14, fontWeight: 700
+                    }}>{meta.icon}</div>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ display: 'flex', justifyContent: 'space-between', gap: 8 }}>
+                        <p style={{
+                          margin: 0, fontSize: 13, fontWeight: n.isRead ? 400 : 600,
+                          color: n.isRead ? T.muted : T.text,
+                          whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis'
+                        }}>{n.title}</p>
+                        <span style={{ color: T.faint, fontSize: 11, flexShrink: 0 }}>{timeAgo(n.createdAt)}</span>
+                      </div>
+                      <p style={{ margin: '2px 0 0', color: T.faint, fontSize: 12, whiteSpace: 'nowrap', overflow: 'hidden', textOverflow: 'ellipsis' }}>
+                        {n.message}
+                      </p>
+                    </div>
+                    {!n.isRead && <div style={{ width: 7, height: 7, borderRadius: '50%', background: T.primary, flexShrink: 0, marginTop: 7 }} />}
+                  </div>
+                )
+              })
+            )}
+          </SectionCard>
+
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 22 }}>
+            <SectionCard title="Student Actions">
+              <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
+                <QuickAction icon="➕" label="Report Incident" desc="Create a new ticket" onClick={() => navigate('/tickets/new')} />
+                <QuickAction icon="📋" label="My Tickets" desc="Track your own reports" onClick={() => navigate('/tickets/my')} />
+                <QuickAction icon="🎫" label="All Tickets" desc="Browse ticket board" onClick={() => navigate('/tickets')} />
+                <QuickAction icon="📅" label="My Bookings" desc="View booking requests" onClick={() => navigate('/bookings')} />
+              </div>
+            </SectionCard>
+
+            <SectionCard title="Your Profile">
+              <div style={{ padding: 20 }}>
+                <div style={{ display: 'flex', alignItems: 'center', gap: 14, marginBottom: 16 }}>
+                  <div style={{
+                    width: 50, height: 50, borderRadius: '50%', background: T.primary,
+                    overflow: 'hidden', flexShrink: 0, display: 'flex',
+                    alignItems: 'center', justifyContent: 'center', color: '#fff', fontSize: 20, fontWeight: 700
+                  }}>
+                    {user?.imageUrl
+                      ? <img src={user.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
+                      : user?.name?.[0]?.toUpperCase()}
+                  </div>
+                  <div>
+                    <p style={{ margin: 0, fontWeight: 700, fontSize: 15, color: T.text }}>{user?.name}</p>
+                    <p style={{ margin: '2px 0 0', color: T.faint, fontSize: 12 }}>{user?.email}</p>
+                  </div>
+                </div>
+                <span style={{ background: '#f0f1f0', color: T.secondary, borderRadius: 6, padding: '3px 11px', fontSize: 11, fontWeight: 700 }}>STUDENT</span>
+              </div>
+            </SectionCard>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -158,6 +302,39 @@ export default function DashboardPage() {
       <div style={{ display: 'flex', gap: 16, marginBottom: 28, flexWrap: 'wrap' }}>
         {stats.map(s => <StatCard key={s.label} {...s} />)}
       </div>
+
+      {(isAdmin || isTechnician) && (
+        <div style={{
+          background: '#e8f5eb',
+          border: '1px solid #c8e6cc',
+          borderRadius: 12,
+          padding: '11px 16px',
+          marginBottom: 18,
+          display: 'flex',
+          gap: 8,
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          fontSize: 12,
+          color: T.muted,
+          fontWeight: 600,
+        }}>
+          {isAdmin ? (
+            <>
+              <span>🛡️ Admin workflow</span><span style={{ color: T.primary }}>→</span>
+              <span>📋 Review booking requests</span><span style={{ color: T.primary }}>→</span>
+              <span>👷 Assign/monitor tickets</span><span style={{ color: T.primary }}>→</span>
+              <span>🏛️ Manage resources & roles</span>
+            </>
+          ) : (
+            <>
+              <span>🧰 Technician workflow</span><span style={{ color: T.primary }}>→</span>
+              <span>🎫 Work assigned tickets</span><span style={{ color: T.primary }}>→</span>
+              <span>✅ Resolve and update notes</span><span style={{ color: T.primary }}>→</span>
+              <span>🔔 Track notifications</span>
+            </>
+          )}
+        </div>
+      )}
 
       {/* Main grid */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 22 }}>
@@ -240,11 +417,21 @@ export default function DashboardPage() {
           {/* Quick actions */}
           <SectionCard title="Quick Actions">
             <div style={{ padding: '14px 16px', display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 10 }}>
-              <QuickAction icon="📅" label="Book a resource" desc="Reserve rooms or equipment" onClick={() => window.location.href='/bookings'} />
-              <QuickAction icon="🔧" label="Report an issue" desc="Submit a maintenance ticket" onClick={() => window.location.href='/tickets'} />
-              <QuickAction icon="🏛️" label="Browse rooms" desc="View available facilities" onClick={() => window.location.href='/resources'} />
-              {user?.roles?.includes('ADMIN') && (
-                <QuickAction icon="🛡️" label="Manage roles" desc="Assign user permissions" onClick={() => window.location.href='/admin/roles'} />
+              <QuickAction
+                icon={isAdmin ? '📑' : '📅'}
+                label={isAdmin ? 'Review bookings' : 'Book a resource'}
+                desc={isAdmin ? 'Approve/reject/cancel requests' : 'Reserve rooms or equipment'}
+                onClick={() => navigate('/bookings')}
+              />
+              <QuickAction
+                icon={isTechnician ? '🧰' : '🔧'}
+                label={isTechnician ? 'Assigned tickets' : 'Report an issue'}
+                desc={isTechnician ? 'Open your ticket queue' : 'Submit a maintenance ticket'}
+                onClick={() => navigate('/tickets')}
+              />
+              <QuickAction icon="🏛️" label="Browse rooms" desc="View available facilities" onClick={() => navigate('/resources')} />
+              {isAdmin && (
+                <QuickAction icon="🛡️" label="Manage roles" desc="Assign user permissions" onClick={() => navigate('/admin/roles')} />
               )}
             </div>
           </SectionCard>

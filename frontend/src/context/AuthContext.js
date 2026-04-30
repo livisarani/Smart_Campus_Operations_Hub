@@ -2,39 +2,80 @@ import React, { createContext, useContext, useState, useEffect, useCallback } fr
 import axios from 'axios';
 const AuthContext = createContext(null);
 
+const normalizeUser = (u) => {
+  if (!u) return null;
+  const resolvedRole = u.role || (Array.isArray(u.roles) && u.roles.length ? u.roles[0] : 'USER');
+  const resolvedName = u.fullName || u.name || u.username || u.email || 'User';
+  const resolvedUsername = u.username || (u.email ? String(u.email).split('@')[0] : resolvedName);
+  return {
+    ...u,
+    fullName: resolvedName,
+    name: resolvedName,
+    username: resolvedUsername,
+    role: resolvedRole,
+  };
+};
+
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [token, setToken] = useState(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    const savedToken = localStorage.getItem('token') || null;
+    const savedToken = localStorage.getItem('token') || localStorage.getItem('accessToken') || null;
     const savedUser = localStorage.getItem('user');
     const legacyEmail = localStorage.getItem('userEmail');
     const legacyName = localStorage.getItem('userName');
     const legacyRole = localStorage.getItem('userRole');
 
-    if (savedToken && savedUser) {
-      try {
-        const parsed = JSON.parse(savedUser);
-        setUser(parsed);
+    const hydrate = async () => {
+      if (savedToken) {
         setToken(savedToken);
         axios.defaults.headers.common.Authorization = `Bearer ${savedToken}`;
-      } catch {
-        localStorage.removeItem('user');
-        localStorage.removeItem('token');
-      }
-    } else if (legacyEmail) {
-      setUser({
-        email: legacyEmail,
-        name: legacyName || legacyEmail,
-        fullName: legacyName || legacyEmail,
-        username: legacyEmail.split('@')[0],
-        role: legacyRole || 'USER',
-      });
-    }
 
-    setLoading(false);
+        if (savedUser) {
+          try {
+            setUser(normalizeUser(JSON.parse(savedUser)));
+            setLoading(false);
+            return;
+          } catch {
+            localStorage.removeItem('user');
+          }
+        }
+
+        try {
+          const { data } = await axios.get('/api/auth/me');
+          const normalized = normalizeUser(data);
+          setUser(normalized);
+          localStorage.setItem('user', JSON.stringify(normalized));
+          if (normalized.email) localStorage.setItem('userEmail', normalized.email);
+          if (normalized.fullName) localStorage.setItem('userName', normalized.fullName);
+          if (normalized.role) localStorage.setItem('userRole', normalized.role);
+          setLoading(false);
+          return;
+        } catch {
+          localStorage.removeItem('token');
+          localStorage.removeItem('accessToken');
+          localStorage.removeItem('refreshToken');
+          localStorage.removeItem('user');
+          delete axios.defaults.headers.common.Authorization;
+        }
+      }
+
+      if (legacyEmail) {
+        setUser(normalizeUser({
+          email: legacyEmail,
+          name: legacyName || legacyEmail,
+          fullName: legacyName || legacyEmail,
+          username: legacyEmail.split('@')[0],
+          role: legacyRole || 'USER',
+        }));
+      }
+
+      setLoading(false);
+    };
+
+    hydrate();
   }, []);
 
   const login = useCallback((arg1, arg2, arg3) => {
@@ -56,10 +97,12 @@ export const AuthProvider = ({ children }) => {
       if (resolvedToken) {
         setToken(resolvedToken);
         localStorage.setItem('token', resolvedToken);
+        localStorage.setItem('accessToken', resolvedToken);
         axios.defaults.headers.common.Authorization = `Bearer ${resolvedToken}`;
       } else {
         setToken(null);
         localStorage.removeItem('token');
+        localStorage.removeItem('accessToken');
         delete axios.defaults.headers.common.Authorization;
       }
 
@@ -91,6 +134,8 @@ export const AuthProvider = ({ children }) => {
     setToken(null);
     setUser(null);
     localStorage.removeItem('token');
+    localStorage.removeItem('accessToken');
+    localStorage.removeItem('refreshToken');
     localStorage.removeItem('user');
     localStorage.removeItem('userEmail');
     localStorage.removeItem('userName');
@@ -100,7 +145,7 @@ export const AuthProvider = ({ children }) => {
 
   useEffect(() => {
     const reqInterceptor = axios.interceptors.request.use((config) => {
-      const t = localStorage.getItem('token');
+      const t = localStorage.getItem('token') || localStorage.getItem('accessToken');
       if (t) config.headers.Authorization = `Bearer ${t}`;
       return config;
     });
@@ -118,13 +163,14 @@ export const AuthProvider = ({ children }) => {
     };
   }, [logout]);
 
-  const isAdmin = user?.role === 'ADMIN';
-  const isTechnician = user?.role === 'TECHNICIAN';
+  const isAdmin = user?.role === 'ADMIN' || user?.roles?.includes?.('ADMIN');
+  const isTechnician = user?.role === 'TECHNICIAN' || user?.roles?.includes?.('TECHNICIAN');
   const isAuthenticated = !!user;
 
-  return (
-    <AuthContext.Provider
-      value={{
+  return React.createElement(
+    AuthContext.Provider,
+    {
+      value: {
         user,
         token,
         login,
@@ -133,10 +179,9 @@ export const AuthProvider = ({ children }) => {
         isAdmin,
         isTechnician,
         isAuthenticated,
-      }}
-    >
-      {children}
-    </AuthContext.Provider>
+      },
+    },
+    children
   );
 };
 

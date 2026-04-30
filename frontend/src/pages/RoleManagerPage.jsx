@@ -3,13 +3,13 @@ import { useState, useEffect, useCallback } from 'react'
 import { rolesApi } from '../api/index.js'
 
 const T = { primary: '#236331', secondary: '#6b7570', bg: '#f5f6f5', surface: '#fff', border: '#e3e6e3', text: '#1a2b1e', muted: '#515953', faint: '#8a948d' }
-const ALL_ROLES = ['USER', 'ADMIN', 'TECHNICIAN', 'MANAGER']
+const ALL_ROLES = ['STUDENT', 'STAFF', 'TECHNICIAN', 'ADMIN']
 
 const ROLE_STYLES = {
   ADMIN:      { bg: '#dcfce7', color: '#15803d' },
-  MANAGER:    { bg: '#fef3c7', color: '#d97706' },
   TECHNICIAN: { bg: '#dbeafe', color: '#1d4ed8' },
-  USER:       { bg: '#f0f1f0', color: T.secondary },
+  STAFF:      { bg: '#fef3c7', color: '#d97706' },
+  STUDENT:    { bg: '#f0f1f0', color: T.secondary },
 }
 
 function RoleBadge({ role }) {
@@ -26,7 +26,7 @@ function UserRow({ user, onUpdate, isEven }) {
   const [selected, setSelected] = useState(new Set(user.roles))
   const [saving, setSaving]     = useState(false)
 
-  const toggle = r => setSelected(prev => { const n = new Set(prev); n.has(r) ? n.delete(r) : n.add(r); return n })
+  const chooseRole = r => setSelected(new Set([r]))
 
   const save = async () => {
     setSaving(true)
@@ -46,10 +46,10 @@ function UserRow({ user, onUpdate, isEven }) {
           }}>
             {user.imageUrl
               ? <img src={user.imageUrl} alt="" style={{ width: '100%', height: '100%', objectFit: 'cover' }} />
-              : user.name?.[0]?.toUpperCase()}
+              : (user.name || user.username)?.[0]?.toUpperCase()}
           </div>
           <div>
-            <p style={{ margin: 0, color: T.text, fontSize: 13, fontWeight: 600 }}>{user.name}</p>
+            <p style={{ margin: 0, color: T.text, fontSize: 13, fontWeight: 600 }}>{user.name || user.username}</p>
             <p style={{ margin: 0, color: T.faint, fontSize: 11 }}>{user.email}</p>
           </div>
         </div>
@@ -64,7 +64,7 @@ function UserRow({ user, onUpdate, isEven }) {
           <div style={{ display: 'flex', gap: 12, flexWrap: 'wrap', alignItems: 'center' }}>
             {ALL_ROLES.map(r => (
               <label key={r} style={{ display: 'flex', alignItems: 'center', gap: 5, cursor: 'pointer' }}>
-                <input type="checkbox" checked={selected.has(r)} onChange={() => toggle(r)} style={{ accentColor: T.primary, width: 14, height: 14 }} />
+                <input type="radio" name={`role-${user.id}`} checked={selected.has(r)} onChange={() => chooseRole(r)} style={{ accentColor: T.primary, width: 14, height: 14 }} />
                 <span style={{ color: T.text, fontSize: 12.5, fontWeight: 500 }}>{r}</span>
               </label>
             ))}
@@ -117,7 +117,7 @@ export default function RoleManagerPage() {
   }
 
   const filtered = users.filter(u =>
-    u.name?.toLowerCase().includes(search.toLowerCase()) ||
+    (u.name || u.username)?.toLowerCase().includes(search.toLowerCase()) ||
     u.email?.toLowerCase().includes(search.toLowerCase())
   )
 

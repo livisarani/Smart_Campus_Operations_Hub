@@ -13,14 +13,19 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -95,11 +100,50 @@ public class AuthController {
                 .build());
     }
 
+    @GetMapping("/me")
+    public ResponseEntity<Map<String, Object>> getCurrentUser(
+            @AuthenticationPrincipal UserDetails principal) {
+        User user = resolveUser(principal);
+        return ResponseEntity.ok(toCurrentUserResponse(user));
+    }
+
+    @PostMapping("/refresh")
+    public ResponseEntity<Map<String, Object>> refreshToken(@RequestBody Map<String, String> body) {
+        String refreshToken = body.get("refreshToken");
+        if (refreshToken == null || !tokenProvider.validateToken(refreshToken)) {
+            throw new BadRequestException("Invalid or expired refresh token");
+        }
+
+        String username = tokenProvider.getUsernameFromToken(refreshToken);
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new BadRequestException("User not found"));
+
+        String accessToken = tokenProvider.generateTokenFromUsername(username);
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("accessToken", accessToken);
+        response.put("refreshToken", tokenProvider.generateTokenFromUsername(username));
+        response.put("tokenType", "Bearer");
+        response.put("expiresIn", 86400);
+        response.put("user", toCurrentUserResponse(user));
+        return ResponseEntity.ok(response);
+    }
+
+    @PostMapping("/logout")
+    public ResponseEntity<Map<String, String>> logout() {
+        return ResponseEntity.ok(Map.of("message", "Logged out successfully"));
+    }
+
     // ===================== GET /api/auth/users =====================
     // Returns all registered users as lightweight summaries.
     // Used by the admin UI to populate the assign-technician dropdown.
     @GetMapping("/users")
-    public ResponseEntity<List<UserSummaryDTO>> getAllUsers() {
+    public ResponseEntity<List<UserSummaryDTO>> getAllUsers(
+            @AuthenticationPrincipal UserDetails principal) {
+        User currentUser = resolveUser(principal);
+        if (currentUser.getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("Only admins can view users list");
+        }
+
         List<UserSummaryDTO> users = userRepository.findAll().stream()
                 .map(u -> UserSummaryDTO.builder()
                         .id(u.getId())
@@ -111,6 +155,23 @@ public class AuthController {
                         .build())
                 .collect(Collectors.toList());
         return ResponseEntity.ok(users);
+    }
+
+    private User resolveUser(UserDetails principal) {
+        return userRepository.findByUsername(principal.getUsername())
+                .orElseThrow(() -> new BadRequestException("User not found"));
+    }
+
+    private Map<String, Object> toCurrentUserResponse(User user) {
+        Map<String, Object> response = new LinkedHashMap<>();
+        response.put("id", user.getId());
+        response.put("username", user.getUsername());
+        response.put("name", user.getFullName());
+        response.put("email", user.getEmail());
+        response.put("imageUrl", null);
+        response.put("provider", "LOCAL");
+        response.put("roles", List.of(user.getRole().name()));
+        return response;
     }
 }
 

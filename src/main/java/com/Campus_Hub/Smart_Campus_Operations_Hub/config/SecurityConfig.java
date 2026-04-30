@@ -1,6 +1,9 @@
 package com.Campus_Hub.Smart_Campus_Operations_Hub.config;
 
 import com.Campus_Hub.Smart_Campus_Operations_Hub.security.JwtAuthenticationFilter;
+import com.Campus_Hub.Smart_Campus_Operations_Hub.security.oauth2.CustomOAuth2UserService;
+import com.Campus_Hub.Smart_Campus_Operations_Hub.security.oauth2.OAuth2AuthenticationFailureHandler;
+import com.Campus_Hub.Smart_Campus_Operations_Hub.security.oauth2.OAuth2AuthenticationSuccessHandler;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
@@ -29,6 +32,9 @@ public class SecurityConfig {
 
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
     private final UserDetailsService userDetailsService;
+    private final CustomOAuth2UserService customOAuth2UserService;
+    private final OAuth2AuthenticationSuccessHandler oAuth2SuccessHandler;
+    private final OAuth2AuthenticationFailureHandler oAuth2FailureHandler;
 
     @Bean
     public PasswordEncoder passwordEncoder() {
@@ -63,7 +69,9 @@ public class SecurityConfig {
             }))
             .authorizeHttpRequests(auth -> auth
                 .requestMatchers("/", "/health").permitAll()
+                .requestMatchers("/favicon.ico").permitAll()
                 .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/oauth2/**").permitAll()
                 .requestMatchers("/api/bookings/**").permitAll()
                 .requestMatchers("/api/resources/**").permitAll()
                 .requestMatchers("/api/notifications/**").permitAll()
@@ -71,6 +79,13 @@ public class SecurityConfig {
                 .requestMatchers("/api/tickets/attachments/**").permitAll()
                 .requestMatchers("/v3/api-docs/**", "/swagger-ui/**").permitAll()
                 .anyRequest().authenticated()
+            )
+            .oauth2Login(oauth2 -> oauth2
+                .authorizationEndpoint(ep -> ep.baseUri("/oauth2/authorize"))
+                .redirectionEndpoint(ep -> ep.baseUri("/oauth2/callback/*"))
+                .userInfoEndpoint(ui -> ui.userService(customOAuth2UserService))
+                .successHandler(oAuth2SuccessHandler)
+                .failureHandler(oAuth2FailureHandler)
             )
             .authenticationProvider(authenticationProvider())
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

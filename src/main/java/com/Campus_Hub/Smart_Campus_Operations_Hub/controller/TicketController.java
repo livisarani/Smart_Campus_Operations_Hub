@@ -18,6 +18,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
@@ -40,7 +41,11 @@ public class TicketController {
     @GetMapping("/technicians")
     public ResponseEntity<List<UserSummaryDTO>> getTechnicians(
             @AuthenticationPrincipal UserDetails principal) {
-        resolveUser(principal); // ensure authenticated
+        User currentUser = resolveUser(principal);
+        if (currentUser.getRole() != UserRole.ADMIN) {
+            throw new AccessDeniedException("Only admins can view technician list");
+        }
+
         List<UserSummaryDTO> techs = userRepository.findByRole(UserRole.TECHNICIAN).stream()
                 .map(u -> UserSummaryDTO.builder()
                         .id(u.getId())

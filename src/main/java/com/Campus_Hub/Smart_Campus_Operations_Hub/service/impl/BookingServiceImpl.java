@@ -8,7 +8,9 @@ import com.Campus_Hub.Smart_Campus_Operations_Hub.exception.ResourceNotFoundExce
 import com.Campus_Hub.Smart_Campus_Operations_Hub.exception.UnauthorizedException;
 import com.Campus_Hub.Smart_Campus_Operations_Hub.model.Booking;
 import com.Campus_Hub.Smart_Campus_Operations_Hub.model.enums.BookingStatus;
+import com.Campus_Hub.Smart_Campus_Operations_Hub.model.enums.UserRole;
 import com.Campus_Hub.Smart_Campus_Operations_Hub.repository.BookingRepository;
+import com.Campus_Hub.Smart_Campus_Operations_Hub.repository.UserRepository;
 import com.Campus_Hub.Smart_Campus_Operations_Hub.service.BookingService;
 import org.apache.pdfbox.pdmodel.PDDocument;
 import org.apache.pdfbox.pdmodel.PDPage;
@@ -37,9 +39,7 @@ public class BookingServiceImpl implements BookingService {
     private static final float REPORT_CARD_HEIGHT = 104f;
 
     private final BookingRepository bookingRepository;
-    
-    // Simple admin validation (you can replace with proper auth later)
-    private static final String ADMIN_EMAIL = "admin@campus.com";
+    private final UserRepository userRepository;
 
     @Override
     public BookingResponseDTO createBooking(BookingRequestDTO requestDTO, String userEmail, String userName) {
@@ -123,7 +123,7 @@ public class BookingServiceImpl implements BookingService {
         
         // Check if user owns the booking or is admin
         boolean isOwner = booking.getUserEmail().equals(userEmail);
-        boolean isAdmin = ADMIN_EMAIL.equals(userEmail);
+        boolean isAdmin = isAdminEmail(userEmail);
         
         if (!isOwner && !isAdmin) {
             throw new UnauthorizedException("Not authorized to cancel this booking");
@@ -229,9 +229,19 @@ public class BookingServiceImpl implements BookingService {
     }
 
     private void validateAdmin(String email) {
-        if (!ADMIN_EMAIL.equals(email)) {
+        if (!isAdminEmail(email)) {
             throw new UnauthorizedException("Admin access required");
         }
+    }
+
+    private boolean isAdminEmail(String email) {
+        if (email == null || email.isBlank()) {
+            return false;
+        }
+
+        return userRepository.findByEmail(email)
+                .map(user -> user.getRole() == UserRole.ADMIN)
+                .orElse(false);
     }
 
     private Booking getBooking(Long id) {
